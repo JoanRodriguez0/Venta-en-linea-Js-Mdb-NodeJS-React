@@ -1,3 +1,4 @@
+const res = require("express/lib/response");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
 const producto=require("../models/productos");
 const ErrorHandler = require("../utils/errorHandler");
@@ -98,3 +99,83 @@ function verProductoPorID(id){
 }
  
 //verProductoPorID('63546690aee8397ce04de0d2'); 
+
+//Crear y actualizar una review
+
+exports.createProdructReview=catchAsyncErrors (async(req,res,next)=>{
+    const {rating, comentario,idProducto}=req.body;
+
+    const opinion={
+        nombreCliente:req.user.nombre,
+        rating:Number(rating),
+        comentario
+    }
+
+    const product= await producto.findById(idProducto);
+
+    const isReviewed= product.opiniones.find(item=>
+        item.nombreCliente===req.user.nombre)
+
+    if(isReviewed){
+        product.opiniones.forEach(opinion => {
+            if(opinion.nombreCliente===req.user.nombre){
+                opinion.comentario=comentario,
+                opinion.rating=rating
+
+            }
+        })
+    } else{
+        product.opiniones.push(opinion)
+        product.numCalificaciones=product.opiniones.length
+    }
+
+    product.calificacion=product.opiniones.reduce((acc,opinion)=>
+    opinion.rating+acc,0)/product.opiniones.length
+
+    await product.save({validateBeforeSave:false});
+
+    res.status(200).json({
+        success:true,
+        message:"Hemos opinado correctamente"
+    })
+
+})
+
+//Ver todas la review de un producto
+exports.getProductsReview = catchAsyncErrors(async(req,res,next)=>{
+    const product = await producto.findById(req.query.id)
+    
+    res.status(200).json({
+        success:true,
+        opiniones:product.opiniones
+    })
+})
+
+//Eliminar review
+//Eliminar review
+exports.deleteReview = catchAsyncErrors(async (req, res, next) => {
+    const product = await producto.findById(req.query.idProducto);
+
+    const opi = product.opiniones.filter(opinion =>
+        opinion._id.toString() !== req.query.idReview.toString());
+
+    const numCalificaciones = opi.length;
+
+    const calificacion = opi.reduce((acc, Opinion) =>
+        Opinion.rating + acc, 0) / opi.length;
+
+    await producto.findByIdAndUpdate(req.query.idProducto, {
+        opi,
+        calificacion,
+        numCalificaciones
+    }, {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false
+    })
+    res.status(200).json({
+        success: true,
+        message: "review eliminada correctamente"
+    })
+
+})
