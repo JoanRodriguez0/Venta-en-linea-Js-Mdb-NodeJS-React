@@ -151,21 +151,21 @@ exports.getProductsReview = catchAsyncErrors(async(req,res,next)=>{
     })
 })
 
-//Eliminar review
+
 //Eliminar review
 exports.deleteReview = catchAsyncErrors(async (req, res, next) => {
     const product = await producto.findById(req.query.idProducto);
 
-    const opi = product.opiniones.filter(opinion =>
+    const opiniones = product.opiniones.filter(opinion =>
         opinion._id.toString() !== req.query.idReview.toString());
 
-    const numCalificaciones = opi.length;
+    const numCalificaciones = opiniones.length;
 
-    const calificacion = opi.reduce((acc, Opinion) =>
-        Opinion.rating + acc, 0) / opi.length;
+    const calificacion = product.opiniones.reduce((acc, Opinion) =>
+        Opinion.rating + acc, 0) / opiniones.length;
 
     await producto.findByIdAndUpdate(req.query.idProducto, {
-        opi,
+        opiniones,
         calificacion,
         numCalificaciones
     }, {
